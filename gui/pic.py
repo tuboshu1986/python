@@ -2,8 +2,9 @@
 
 import sys;
 import re;
-from PyQt5.QtWidgets import (QWidget, QHBoxLayout, QVBoxLayout, QLabel, QApplication, QScrollArea, QFrame, QSplitter, QPushButton);
-from PyQt5.QtGui import (QPixmap);
+import os;
+from PyQt5.QtWidgets import (QInputDialog, QMessageBox, QFileDialog, QAction, QWidget, QHBoxLayout, QVBoxLayout, QLabel, QApplication, QScrollArea, QFrame, QSplitter, QPushButton, QListWidget, QListWidgetItem, QMainWindow);
+from PyQt5.QtGui import (QPixmap, QIcon);
 from PyQt5.QtCore import (Qt);
 
 
@@ -50,37 +51,31 @@ class MyPicScroll(QScrollArea):
 		self.label.setPixmap(QPixmap(path));
 		super().setWidget(self.label);
 		
-picArr = ["C:/Users/dell/Pictures/Saved Pictures/nature-river-stream-91505.jpg",
-	"C:/Users/dell/Pictures/Saved Pictures/17.jpg",
-	"C:/Users/dell/Pictures/Saved Pictures/2.gif",
-	"C:/Users/dell/Pictures/Saved Pictures/4.jpg",
-	"C:/Users/dell/Pictures/Saved Pictures/18.jpg",
-	"C:/Users/dell/Pictures/Saved Pictures/6.jpg",
-	"C:/Users/dell/Pictures/Saved Pictures/15.jpg",
-	"C:/Users/dell/Pictures/Saved Pictures/19.jpg",
-	"C:/Users/dell/Pictures/Saved Pictures/20.jpg"];
-		
-class Example(QWidget):
+class Example(QMainWindow):
 	def __init__(self):
 		super().__init__();
+		self.currentPicList = None;
+		self.currentPic = None;
+		self.currentDic = None;
 		self.initUI();
 
 	def initUI(self):
+		self.initPicPanel();
+		self.initMenu();
+		self.show();
+		
+		#self.setPicList(picArr);
+		
+	def initPicPanel(self):
 		left = QFrame(self);
 		leftLayout = QVBoxLayout(left);
 		left.setLayout(leftLayout);
 		
-		leftScroll = QScrollArea();
-		leftScroll.setWidget(left);
+		self.picList = QListWidget(self);
+		self.picList.itemClicked.connect(self.changePic);
 		
-		for p in picArr:
-			m = re.search("/.+/(.+?\..+)$", p);
-			if m:
-				btn = QPushButton(m.group(1), left);
-				btn.picPath = p;
-				btn.clicked.connect(self.changePic);
-				leftLayout.addWidget(btn);
-				leftLayout.invalidate();
+		#leftScroll = QScrollArea();
+		#leftScroll.setWidget(selfPicList);
 		
 		right = QFrame(self);
 		hbox = QHBoxLayout(right)
@@ -90,23 +85,107 @@ class Example(QWidget):
 		hbox.addWidget(right.picScroll);
 		
 		horiSplitter = QSplitter(Qt.Horizontal);
-		horiSplitter.addWidget(leftScroll);
+		horiSplitter.addWidget(self.picList);
 		horiSplitter.addWidget(right);
-		horiSplitter.setStretchFactor(0, 2);
-		horiSplitter.setStretchFactor(1, 8);
+		horiSplitter.setStretchFactor(0, 1);
+		horiSplitter.setStretchFactor(1, 6);
+		self.setCentralWidget(horiSplitter);
 		
-		boxLayout = QHBoxLayout(self);
-		boxLayout.addWidget(horiSplitter);
-		self.setLayout(boxLayout);
 		
-		self.show();
+	def initMenu(self):
+		self.statusBar().showMessage("ready");
+		menuBar = menubar = self.menuBar();
+		toolBar = self.addToolBar("file");
+		fileMenu = menuBar.addMenu("文件");
+		
+		dicAction = self.defindeAction('打开文件夹', 'Ctrl+O', '选择文件夹以显示其中的图片', self.openDicSelector);
+		fileMenu.addAction(dicAction);
+		toolBar.addAction(dicAction);
+		
+		goodDicAction = self.defindeAction('好的文件夹', 'Ctrl+G', '标记为有价值的文件夹', self.isGoodDic);
+		fileMenu.addAction(goodDicAction);
+		toolBar.addAction(goodDicAction);
+
+		nextDicAction = self.defindeAction('下一个文件夹', 'Ctrl+D', '加载下一个文件夹', self.showNextPic);
+		fileMenu.addAction(nextDicAction);
+		toolBar.addAction(nextDicAction);
+		
+		lastDicAction = self.defindeAction('上一个文件夹', 'Ctrl+F', '加载上一个文件夹', self.showNextPic);
+		fileMenu.addAction(lastDicAction);
+		toolBar.addAction(lastDicAction);
+		
+		nexPicAction = self.defindeAction('下一张图片', 'Ctrl+N', '显示同目录的下一张图片', self.showNextPic);
+		fileMenu.addAction(nexPicAction);
+		toolBar.addAction(nexPicAction);
+		
+		lastPicAction = self.defindeAction('上一张图片', 'Ctrl+L', '显示同目录的上一张图片', self.showNextPic);
+		fileMenu.addAction(lastPicAction);
+		toolBar.addAction(lastPicAction);
+		
+	def defindeAction(self, title, shortcut, statusTip, actionFun):
+		action = QAction(title, self)        
+		action.setShortcut(shortcut);
+		action.setStatusTip(statusTip);
+		action.triggered.connect(actionFun);
+		return action;
+		
+	def isGoodDic(self):
+		if not self.currentDic:
+			reply = QMessageBox.warning(self,"消息","未选中文件夹",QMessageBox.Yes);
+			return;
+		(text, ok) = QInputDialog.getText(self,'标记','标记文本:');
+		if ok and text:
+			with open(self.currentDic + os.sep + "m.log", "a") as mfile:
+				mfile.write(text + "\n");
+		
+	def showNextPic(self):
+		print(124);
+		
+	def showLastPic(self):
+		print(124);
+		
+	def openDicSelector(self):
+		try:
+			pdic = "/home";
+			if self.currentDic:
+				pdic = os.path.dirname(self.currentDic);
+			fname = QFileDialog.getExistingDirectory(self, '打开文件夹', pdic);
+			if fname:
+				ps = self.getPicsForDic(fname);
+				if len(ps)==0:
+					return;
+				self.picList.clear();
+				self.setPicList(ps);
+				self.picPanel.setPic(ps[0][0]);
+				self.currentDic = fname;
+		except Exception as e:
+			print(e);
+		
+	def getPicsForDic(self, path):
+		fs = os.listdir(path);
+		ps = [];
+		if fs and len(fs)>0:
+			for fn in fs:
+				ps.append((path + os.sep + fn, fn));
+		return ps;
+		
+	def setPicList(self, picArr):
+		for p in picArr:
+			if p:
+				item = QListWidgetItem(p[1]);
+				item.picPath = p[0];
+				#item.setIcon(QIcon(p));
+				self.picList.addItem(item);
 		
 	def changePic(self, e):
-		print(self.sender().picPath);
-		self.picPanel.setPic(self.sender().picPath);
+		try:
+			print(e.picPath);
+			self.picPanel.setPic(e.picPath);
+		except Exception as e:
+			print(e);
 	
 	def show(self):
-		self.setGeometry(300, 300, 500, 300);
+		self.setGeometry(300, 200, 1200, 700);
 		self.setWindowTitle("简易");
 		super().show();
 		

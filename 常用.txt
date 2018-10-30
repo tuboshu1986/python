@@ -1,1 +1,4 @@
 cmd /k D:\ProgramFiles\Python37\python.exe "$(FULL_CURRENT_PATH)" & PAUSE & EXIT
+
+
+黄泊/study-workspace\python\gui

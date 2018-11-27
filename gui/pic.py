@@ -4,6 +4,8 @@ import sys;
 import re;
 import os;
 import filetype;
+import traceback;
+from picFileUtil import *;
 from PyQt5.QtWidgets import (QInputDialog, QMessageBox, QFileDialog, QAction, QWidget, QHBoxLayout, QVBoxLayout, QLabel, QApplication, QScrollArea, QFrame, QSplitter, QPushButton, QListWidget, QListWidgetItem, QMainWindow);
 from PyQt5.QtGui import (QPixmap, QIcon);
 from PyQt5.QtCore import (Qt);
@@ -62,6 +64,7 @@ class Example(QMainWindow):
 		self.picList = None;
 		self.parentLevel = 1;
 		self.initUI();
+		self.picFileUtil = None;
 
 	def initUI(self):
 		self.initPicPanel();
@@ -127,6 +130,7 @@ class Example(QMainWindow):
 		parentLevelAction = self.defindeAction('回退深度', '', '查找同一级目录时回退的深度', self.setParentLevel);
 		editMenu.addAction(parentLevelAction);
 		
+		
 	def defindeAction(self, title, shortcut, statusTip, actionFun):
 		action = QAction(title, self)        
 		action.setShortcut(shortcut);
@@ -135,11 +139,7 @@ class Example(QMainWindow):
 		return action;
 	
 	def setParentLevel(self):
-		(text, ok) = QInputDialog.getText(self,'深度','输入整数:');
-		if not ok or not text.isdigit():
-			QMessageBox.warning(self, "消息", "必须输入整数", QMessageBox.Yes);
-			return;
-		self.parentLevel = int(text);
+		self.parentLevel = self.picFileUtil.inputParentLevel(self.currentDic);
 	
 	def isGoodDic(self):
 		if not self.currentDic:
@@ -151,14 +151,20 @@ class Example(QMainWindow):
 				mfile.write(text + "\n");
 		
 	def lastDir(self):
-		if not self.currentDic or self.currentDicIndex == 0:
-			return;
-		self.sublingDics[self.currentDicIndex + 1];
+		try:
+			nextDir = self.picFileUtil.lastDir();
+			print(nextDir);
+			self.setDirData(nextDir);
+		except Exception as e:
+			traceback.print_exc();
 		
 	def nextDir(self):
-		if not self.currentDic or self.currentDicIndex == (len(self.sublingDics) - 1):
-			return;
-		self.sublingDics[self.currentDicIndex + 1];
+		try:
+			nextDir = self.picFileUtil.nextDir();
+			print(nextDir);
+			self.setDirData(nextDir);
+		except Exception as e:
+			traceback.print_exc();
 		
 		
 	def showNextPic(self):
@@ -179,6 +185,13 @@ class Example(QMainWindow):
 			if self.currentDic:
 				pdic = os.path.dirname(self.currentDic);
 			fname = QFileDialog.getExistingDirectory(self, '打开文件夹', pdic);
+			self.setDirData(fname);
+			self.picFileUtil = PicFileUtil(self, fname);
+		except Exception as e:
+			print(e);
+		
+	def setDirData(self, fname):
+		try:
 			if fname:
 				ps = self.getPicsForDic(fname);
 				if len(ps)==0:
@@ -192,7 +205,7 @@ class Example(QMainWindow):
 				
 				self.setSublingDics(fname);
 		except Exception as e:
-			print(e);
+			traceback.print_exc();
 		
 	def setSublingDics(self, currentPath):
 		try:

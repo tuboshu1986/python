@@ -137,6 +137,9 @@ class Example(QMainWindow):
 		subDirListAction = self.defindeAction('目录列表', '', '同一级目录列表', self.showSublingDirs);
 		editMenu.addAction(subDirListAction);
 		
+		deleteSimilarDirAction = self.defindeAction('删除相似目录', '', '删除每次中包含指定字符串的文件夹', self.deleteSimilarDir);
+		editMenu.addAction(deleteSimilarDirAction);
+		
 		
 	def defindeAction(self, title, shortcut, statusTip, actionFun):
 		action = QAction(title, self)        
@@ -144,6 +147,18 @@ class Example(QMainWindow):
 		action.setStatusTip(statusTip);
 		action.triggered.connect(actionFun);
 		return action;
+	
+	
+	def deleteSimilarDir(self):
+		try:
+			(text, ok) = QInputDialog.getText(self,'输入名称','输入目录名称:',text = self.windowTitle());
+			print(ok);
+			if(ok and text != ""):
+				btnRst = QMessageBox.question(self, "提问", "是否删除包含【%s】的目录？"%text, QMessageBox.Ok|QMessageBox.Cancel, QMessageBox.Ok);
+				if(btnRst == QMessageBox.Ok):
+					self.picFileUtil.deleteSimilarDir(text);
+		except Exception as e:
+			traceback.print_exc();
 	
 	
 	def deleteCurrentDir(self):
@@ -235,10 +250,11 @@ class Example(QMainWindow):
 				self.currentPicList = ps;
 				self.currentDic = fname;
 				
-				self.setSublingDics(fname);
+				##self.setSublingDics(fname);
 				self.setWindowTitle(fname);
 		except Exception as e:
 			traceback.print_exc();
+		
 		
 	def setSublingDics(self, currentPath):
 		try:
@@ -253,7 +269,8 @@ class Example(QMainWindow):
 			self.sublingDics = sublings;
 			self.currentDicIndex();
 		except Exception as e:
-			print(e);
+			traceback.print_exc();
+			
 			
 	def currentDicIndex(self):
 		parentPath = self.currentDic;

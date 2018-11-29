@@ -4,6 +4,7 @@ import shutil;
 from PyQt5.QtWidgets import (QInputDialog, QMessageBox);
 from PyQt5.QtWidgets import *;
 from PyQt5.QtQuick import *;
+from PyQt5.QtCore import *;
 
 print(">>>>文件工具包加载成功");
 
@@ -66,6 +67,7 @@ class PicFileUtil():
 			numbers.append(subCfg);
 			
 		self.pathConfig = numbers;
+		self.dicList();
 	
 	
 	def lastDir(self):
@@ -145,26 +147,13 @@ class PicFileUtil():
 		
 	def showDirList(self):
 		self.dirShower = DirPanel(self.pic);
-		dirList = QListWidget(self.dirShower);
-		dirList.setStyleSheet("""
-			QLabel{
-				background-color:red;
-			}
-		""");
+		dirList = self.dirShower.dirList;
 		for index in range(len(self.dirs)):
 			item = QListWidgetItem(os.path.basename(self.dirs[index]));
 			item.dirIndex = index;
 			dirList.addItem(item);
 		dirList.setCurrentRow(self.currentDirIndex);
 		dirList.itemDoubleClicked.connect(self.selectDir);
-		
-		vbox  = QVBoxLayout();
-		vbox.addWidget(dirList);
-		
-		self.dirShower.setLayout(vbox);
-		self.dirShower.setWindowTitle("同级目录");
-		self.dirShower.setGeometry(500, 100, 600, 800);
-		self.dirShower.show();
 		
 
 	def selectDir(self, item):
@@ -185,14 +174,82 @@ class PicFileUtil():
 		return cDir;
 		
 		
+	def deleteSimilarDir(self, name):
+		try:
+			print(">>>>删除名称包含【%s】的目录"%name);
+			if(not name or name == ""):
+				return;
+			while True:
+				dir = None;
+				for index in range(len(self.dirs)):
+					fname = self.dirs[index];
+					if(os.path.basename(fname).find(name) >= 0):
+						dir = self.dirs.pop(index);
+						self.moveDir(dir);
+						print(dir);
+						break;
+				if(not dir):
+					break;
+			self.setDirIndex(self.currentDirIndex);
+			self.pic.refresh();
+		except Exception as e:
+			traceback.print_exc();
+		
+		
+		
+	def setDirIndex(self, index):
+		if(index<0):
+			return;
+		if(index >= len(self.dirs)):
+			index = len(self.dirs) - 1;
+		self.currentDirIndex = index;
+		self.currentDir = self.dirs[index];
+	
+		
 	def moveDir(self, srcDir):
 		shutil.move(srcDir, self.deletedDir);
+		
 		
 		
 class DirPanel(QWidget):
 	def __init__(self, p):
 		super().__init__();
 		self.parent = p;
+		self.dirList = QListWidget(self);
+		self.dirList.setStyleSheet("""
+			QLabel{
+				background-color:red;
+			}
+		""");
+		
+		self.dirNameText = QLineEdit(self);
+		self.dirNameButton = QPushButton("搜索", self);
+		self.dirNameButton.clicked.connect(self.searchList);
+		hbox = QHBoxLayout();
+		hbox.addWidget(self.dirNameText);
+		hbox.addWidget(self.dirNameButton);
+		
+		vbox  = QVBoxLayout();
+		vbox.addLayout(hbox);
+		vbox.addWidget(self.dirList);
+		
+		self.setLayout(vbox);
+		self.setWindowTitle("同级目录");
+		self.setGeometry(500, 100, 600, 800);
+		self.show();
+	
+	
+	def searchList(self):
+		text = self.dirNameText.text();
+		if(not text):
+			text = "";
+		print(self.dirList.count());
+		for index in range(self.dirList.count()):
+			item = self.dirList.item(index);
+			if(item.text().find(text) >= 0):
+				item.setHidden(False);
+			else:
+				item.setHidden(True);
 	
 	
 	def hideEvent(self, v):

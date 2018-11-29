@@ -127,8 +127,15 @@ class Example(QMainWindow):
 		fileMenu.addAction(nexPicAction);
 		toolBar.addAction(nexPicAction);
 		
+		deleteDirAction = self.defindeAction('删除', '', '删除文件夹', self.deleteCurrentDir);
+		fileMenu.addAction(deleteDirAction);
+		toolBar.addAction(deleteDirAction);
+		
 		parentLevelAction = self.defindeAction('回退深度', '', '查找同一级目录时回退的深度', self.setParentLevel);
 		editMenu.addAction(parentLevelAction);
+		
+		subDirListAction = self.defindeAction('目录列表', '', '同一级目录列表', self.showSublingDirs);
+		editMenu.addAction(subDirListAction);
 		
 		
 	def defindeAction(self, title, shortcut, statusTip, actionFun):
@@ -137,6 +144,21 @@ class Example(QMainWindow):
 		action.setStatusTip(statusTip);
 		action.triggered.connect(actionFun);
 		return action;
+	
+	
+	def deleteCurrentDir(self):
+		try:
+			cDir = self.picFileUtil.deleteCurrentDir();
+			print(">>>>删除成功:" + cDir);
+		except Exception as e:
+			traceback.print_exc();
+	
+	
+	def showSublingDirs(self):
+		try:
+			self.picFileUtil.showDirList();
+		except Exception as e:
+			traceback.print_exc();
 	
 	def setParentLevel(self):
 		self.parentLevel = self.picFileUtil.inputParentLevel(self.currentDic);
@@ -166,9 +188,19 @@ class Example(QMainWindow):
 		except Exception as e:
 			traceback.print_exc();
 		
+	def refresh(self):
+		try:
+			nextDir = self.picFileUtil.refresh();
+			self.setDirData(nextDir);
+		except Exception as e:
+			traceback.print_exc();
+		
 		
 	def showNextPic(self):
 		currRow = self.picList.currentRow();
+		print(currRow);
+		if( not currRow or currRow < 0):
+			currRow = 0;
 		if currRow < (self.picList.count()-1):
 			currRow += 1;
 		self.picList.setCurrentRow(currRow);
@@ -204,6 +236,7 @@ class Example(QMainWindow):
 				self.currentDic = fname;
 				
 				self.setSublingDics(fname);
+				self.setWindowTitle(fname);
 		except Exception as e:
 			traceback.print_exc();
 		
@@ -280,7 +313,8 @@ class Example(QMainWindow):
 			print(e);
 	
 	def show(self):
-		self.setGeometry(300, 200, 1200, 700);
+		if(not self.isMaximized()):
+			self.setGeometry(300, 200, 1200, 700);
 		self.setWindowTitle("简易");
 		super().show();
 		

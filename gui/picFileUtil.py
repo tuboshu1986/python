@@ -1,10 +1,15 @@
 import os;
 import traceback;
+import shutil;
 from PyQt5.QtWidgets import (QInputDialog, QMessageBox);
+from PyQt5.QtWidgets import *;
+from PyQt5.QtQuick import *;
 
 print(">>>>文件工具包加载成功");
 
 class PicFileUtil():
+	
+	deletedDir = "D:/hhh/f/";
 	
 	def __init__(self, p, basePath):
 		super().__init__();
@@ -20,6 +25,7 @@ class PicFileUtil():
 		print(">>>>" + basePath);
 		self.dirs = None;
 		self.analyzePathConfig();
+		self.dirShower = None;
 
 
 	def inputParentLevel(self, basePath):
@@ -82,7 +88,12 @@ class PicFileUtil():
 		self.currentDirIndex = dirIndex;
 		self.currentDir = tmpDir;
 		return self.subDir();
-	
+		
+	def refresh(self):
+		if self.currentDir :
+			self.dicList();
+			return self.subDir();
+		return None;
 	
 	def subDir(self):
 		currentDir = self.currentDir;
@@ -130,6 +141,66 @@ class PicFileUtil():
 		except Exception as e:
 			print(">>>>不是数字");
 		return False;
+		
+		
+	def showDirList(self):
+		self.dirShower = DirPanel(self.pic);
+		dirList = QListWidget(self.dirShower);
+		dirList.setStyleSheet("""
+			QLabel{
+				background-color:red;
+			}
+		""");
+		for index in range(len(self.dirs)):
+			item = QListWidgetItem(os.path.basename(self.dirs[index]));
+			item.dirIndex = index;
+			dirList.addItem(item);
+		dirList.setCurrentRow(self.currentDirIndex);
+		dirList.itemDoubleClicked.connect(self.selectDir);
+		
+		vbox  = QVBoxLayout();
+		vbox.addWidget(dirList);
+		
+		self.dirShower.setLayout(vbox);
+		self.dirShower.setWindowTitle("同级目录");
+		self.dirShower.setGeometry(500, 100, 600, 800);
+		self.dirShower.show();
+		
+
+	def selectDir(self, item):
+		print(self.dirs[item.dirIndex]);
+		self.currentDirIndex = item.dirIndex;
+		self.currentDir = self.dirs[item.dirIndex];
+		self.dirShower.close();
+		self.pic.refresh();
+		
+		
+	def deleteCurrentDir(self):
+		cDir = self.dirs.pop(self.currentDirIndex);
+		if(self.currentDirIndex >= len(self.dirs)):
+			self.currentDirIndex = len(self.dirs) - 1;
+		self.currentDir = self.dirs[self.currentDirIndex];
+		self.pic.refresh();
+		self.moveDir(cDir);
+		return cDir;
+		
+		
+	def moveDir(self, srcDir):
+		shutil.move(srcDir, self.deletedDir);
+		
+		
+class DirPanel(QWidget):
+	def __init__(self, p):
+		super().__init__();
+		self.parent = p;
+	
+	
+	def hideEvent(self, v):
+		self.parent.show();
+		
+		
+	def showEvent(self, v):
+		self.parent.hide();
 		
 		
 		
